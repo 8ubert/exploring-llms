@@ -15,6 +15,8 @@ Explorando as capacidades dos Modelos de Linguagem (LLMs) com a biblioteca Trans
 2. [Tokens,DevicesEMemóriaDeConversa.ipynb](./Tokens,DevicesEMemóriaDeConversa.ipynb)
 3. [FiltrandoJailbreak.ipynb](./FiltrandoJailbreak.ipynb)
 
+![Notebooks](https://tse3.mm.bing.net/th?id=OIP.r8ON7toWMgnFRjdRGLCMowHaC-&pid=Api&P=0&h=180) <!-- Substitua pelo caminho da sua imagem -->
+
 ---
 
 ## 📖 Descrição do Projeto
@@ -41,33 +43,19 @@ Neste notebook, utilizamos:
 A função principal do sistema é a seguinte:
 
 ```python
+from transformers import pipeline
 
-def processa_prompt(modelo, prompt):
-  print("="*80)
+# Carregar o classificador de jailbreak
+jailbreak_classifier = pipeline("text-classification", model="jackhhao/jailbreak-classifier")
+# Carregar o modelo generativo
+text_generator = pipeline("text-generation", model="TinyLlama/TinyLlama-1.1B-Chat-v1.0")
 
-  # Codificando o prompt em tokens
-  tokens = modelo.tokenizer.encode(prompt, return_tensors='pt')
-  print(f"- prompt original: {prompt}")
-  print(f"- tokens: {tokens}")
-  print(f"- # de tokens: {len(tokens)}")
-
-  # Decodificando os tokens
-  decoded = modelo.tokenizer.convert_ids_to_tokens(tokens[0])
-  print(f"- tokens decodificados: {decoded}")
-
-  first_tokens = modelo.tokenizer.convert_ids_to_tokens(range(5))
-  print(f"- primeiros tokens: {first_tokens}")
-
-  # Processando o prompt com o modelo
-  # O nível de "criatividade" do modelo é alterado para 0.7 através do parâmetro "temperature"
-  # É necessário setar "do_sample"=True para controlar a temperatura
-  output = modelo(prompt, do_sample=True, temperature=0.7)
-  print(f"- output do modelo: {output}")
-  print(f"- texto gerado efetivamente: {output[0]['generated_text']}")
-
-  print("="*80)
-  return
-
-processa_prompt(modelo, "Once upon a time")
-
-
+def process_prompt(user_prompt):
+    # Checar se o prompt é potencialmente malicioso
+    classification = jailbreak_classifier(user_prompt)
+    if classification[0]['label'] == 'jailbreak':
+        return "Este prompt é potencialmente malicioso e não será processado."
+    else:
+        # Gerar texto seguro
+        response = text_generator(user_prompt, max_new_tokens=100)
+        return response[0]['generated_text']
